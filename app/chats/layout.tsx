@@ -1,4 +1,4 @@
-import { DBTables } from "../../enums/Tables";
+import { DBTables } from "@/lib/enums/Tables";
 import { createClient } from "../../utils/supabase-server";
 import ChatContacts from "./ChatContacts";
 import { ContactContextProvider } from "./CurrentContactContext";
