@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Check, ChevronsUpDown } from "lucide-react"
-import { useForm } from "react-hook-form"
+import { Noop, RefCallBack, useForm } from "react-hook-form"
 import * as z from "zod"
 
 import { cn } from "@/lib/utils"
@@ -28,123 +28,108 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useState } from "react"
+import { useState, forwardRef } from "react"
 import countryCodeListUntyped from "@/lib/countryCodeList.json"
-
-const languages = [
-  { label: "English", value: "en" },
-  { label: "French", value: "fr" },
-  { label: "German", value: "de" },
-  { label: "Spanish", value: "es" },
-  { label: "Portuguese", value: "pt" },
-  { label: "Russian", value: "ru" },
-  { label: "Japanese", value: "ja" },
-  { label: "Korean", value: "ko" },
-  { label: "Chinese", value: "zh" },
-] as const
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 type CountryType = {
   code: string
   name: string
-  phoneCode: string
+  phoneCode: string,
+  displayValue: string,
 }
 
 const countryCodeList = countryCodeListUntyped as CountryType[]
 
-const FormSchema = z.object({
-  country: z.object({
-    code: z.string(),
-    name: z.string(),
-    phoneCode: z.string(),
-  })
-  // z.object({
-  //   required_error: "Please select a country.",
-  // }),
+console.log('countries values are being calculated')
+countryCodeList.forEach((country: CountryType) => {
+  country.displayValue = `(+${country.phoneCode}) ${country.name}`
 })
 
-export function CountryDropdown() {
-  const [open, setOpen] = useState(false)
+export const countryFormType = z.object({
+  code: z.string(),
+  name: z.string(),
+  phoneCode: z.string(),
+})
 
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-  })
+type CountryDropdownValues = z.infer<typeof countryFormType>
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    console.log('data', data)
-  }
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="country"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Language</FormLabel>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className={cn(
-                        "w-[200px] justify-between",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value
-                        ? `(+${field.value.phoneCode}) ${field.value.name}`
-                        : "Select language"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0">
-                  <Command>
-                    <CommandInput placeholder="Search framework..." />
-                    <CommandEmpty>No framework found.</CommandEmpty>
-                    <CommandGroup>
-                      {countryCodeList.map((country) => (
-                        <CommandItem
-                          value={country.code}
-                          key={country.code}
-                          onSelect={(value) => {
-                            console.log('value', value)
-                            console.log('field.value', field.value)
-                            const selectedCountry: CountryType | undefined = countryCodeList.find(
-                              (country) => country.code === value
-                            )
-                            if (selectedCountry) {
-                              form.setValue("country", selectedCountry)
-                              setOpen(false)
-                            }
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              country.code === field.value?.code
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          (+{country.phoneCode}) {country.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormDescription>
-                This is the language that will be used in the dashboard.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit">Submit</Button>
-      </form>
-    </Form>
-  )
+type CountryDropdownProps = {
+  onChange: (value: CountryDropdownValues) => void,
+  onBlur: Noop,
+  value: CountryDropdownValues,
+  ref: RefCallBack,
 }
+
+const CountryDropdown = forwardRef<HTMLInputElement, CountryDropdownProps>(
+  (props, ref) => {
+    const [open, setOpen] = useState(false)
+
+    return (
+      <FormItem className="flex flex-col">
+        <FormLabel>Country Code</FormLabel>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <FormControl>
+              <Button
+                variant="outline"
+                role="combobox"
+                className={cn(
+                  "w-[104px] justify-between",
+                  !props.value && "text-muted-foreground"
+                )}
+              >
+                <span className="text-center flex-1">
+                  {props.value
+                    ? `+${props.value.phoneCode}`
+                    : "Select country"}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </FormControl>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0">
+            <Command ref={ref}>
+              <CommandInput placeholder="Search country..." />
+              <CommandEmpty>No country found.</CommandEmpty>
+              <CommandGroup>
+                <ScrollArea className="h-[200px]">
+                  {countryCodeList.map((country) => (
+                    <CommandItem
+                      value={country.displayValue}
+                      key={country.code}
+                      onSelect={(value) => {
+                        console.log('value', value)
+                        const selectedCountry: CountryType | undefined = countryCodeList.find(
+                          (country) => country.displayValue.toLowerCase() === value.toLowerCase()
+                        )
+                        if (selectedCountry) {
+                          props.onChange(selectedCountry)
+                          setOpen(false)
+                        }
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          country.code === props.value?.code
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {country.displayValue}
+                    </CommandItem>
+                  ))}
+                </ScrollArea>
+              </CommandGroup>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        <FormMessage />
+      </FormItem>
+      // )}
+      // />
+    )
+  }
+)
+export { CountryDropdown };
