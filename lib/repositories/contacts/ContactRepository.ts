@@ -11,6 +11,10 @@ export interface ContactRepository {
             column: ContactColumnName,
             options?: { ascending?: boolean; nullsFirst?: boolean; foreignTable?: undefined }
         },
-    ): Promise<Contact[]>
+        paginationOptions?: { limit: number, offset: number},
+        fetchCount?: boolean,
+    ): Promise<{ rows: Contact[], itemsCount: number | null }>
+
+    getTotalNumberOfContacts(filters?: Map<ContactColumnName, unknown>): Promise<number | null>
 }
 

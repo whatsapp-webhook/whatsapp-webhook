@@ -6,34 +6,36 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
+    DialogTrigger
 } from "@/components/ui/dialog"
-import { zodResolver } from "@hookform/resolvers/zod"
 import {
     Form,
-    FormControl,
-    FormDescription,
-    FormField,
+    FormControl, FormField,
     FormItem,
     FormLabel,
-    FormMessage,
+    FormMessage
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { DBTables } from "@/lib/enums/Tables"
+import { createClient } from "@/utils/supabase-browser"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { ReactNode, useState } from "react"
-import { CountryDropdown, countryFormType } from "./CountryDropdown"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
+import { CountryDropdown, countryFormType } from "./CountryDropdown"
 
 const FormSchema = z.object({
-    name: z.string(),
-    wa_number: z.string(),
+    name: z.string({
+        required_error: "Name is required",
+    }).min(3),
+    wa_number: z.string({
+        required_error: "Mobile number is required",
+    }).min(7),
     country: countryFormType
 })
 
-export function AddContactDialog({ children }: { children: ReactNode }) {
-    const [name, setName] = useState<string>('')
-    const [number, setNumber] = useState<string>('')
+export function AddContactDialog({ children, onSuccessfulAdd }: { children: ReactNode, onSuccessfulAdd: () => void }) {
+    const [ isDialogOpen, setDialogOpen] = useState(false); 
     const form = useForm<z.infer<typeof FormSchema>>({
         resolver: zodResolver(FormSchema),
         defaultValues: {
@@ -43,12 +45,19 @@ export function AddContactDialog({ children }: { children: ReactNode }) {
         }
     })
 
-    function onSubmit(data: z.infer<typeof FormSchema>) {
-        console.log('data', data)
+    async function onSubmit(data: z.infer<typeof FormSchema>) {
+        const mobileNumber = data.country.phoneCode.replace(/[\+\-]/, '') + data.wa_number
+        const wa_id = Number.parseInt(mobileNumber)
+        const supabaseClient = createClient()
+        const { error } = await supabaseClient.from(DBTables.Contacts).insert({ profile_name: data.name, wa_id: wa_id })
+        if (error) throw error
+        form.reset()
+        setDialogOpen(false)
+        onSuccessfulAdd()
     }
 
     return (
-        <Dialog>
+        <Dialog open={isDialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
                 {children}
             </DialogTrigger>

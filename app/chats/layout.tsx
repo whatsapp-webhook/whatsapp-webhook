@@ -10,6 +10,7 @@ export default async function ChatsLayout({ children }: {
     const { data: contacts , error } = await supabase
         .from(DBTables.Contacts)
         .select('*')
+        .filter("in_chat", "eq", true)
         .order('last_message_at', { ascending: false })
     if (error) throw error
     return (

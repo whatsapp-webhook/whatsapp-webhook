@@ -41,7 +41,6 @@ type CountryType = {
 
 const countryCodeList = countryCodeListUntyped as CountryType[]
 
-console.log('countries values are being calculated')
 countryCodeList.forEach((country: CountryType) => {
   country.displayValue = `(+${country.phoneCode}) ${country.name}`
 })
@@ -99,7 +98,6 @@ const CountryDropdown = forwardRef<HTMLInputElement, CountryDropdownProps>(
                       value={country.displayValue}
                       key={country.code}
                       onSelect={(value) => {
-                        console.log('value', value)
                         const selectedCountry: CountryType | undefined = countryCodeList.find(
                           (country) => country.displayValue.toLowerCase() === value.toLowerCase()
                         )
@@ -127,9 +125,8 @@ const CountryDropdown = forwardRef<HTMLInputElement, CountryDropdownProps>(
         </Popover>
         <FormMessage />
       </FormItem>
-      // )}
-      // />
     )
   }
 )
+CountryDropdown.displayName = "CountryDropdown"
 export { CountryDropdown };
